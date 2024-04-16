@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+source etkilesim
+
+precommitBaslik="$urtotm_dialogBaslik - pre-commit"
+
+# Testleri çalıştırmadan önce gradlew varlığını yokla
+gradlew="$(find $urtotm_projeDizini -name gradlew -type f)"
+if [[ -z "$gradlew" ]]; then
+	mesajGoster hata "$precommitBaslik" \
+		"'gradlew' betiği '$urtotm_projeDizini' dizininde bulunamadığından
+		pre-commit kancası iptal oldu. Lütfen gradlew betiğinin bu dizinde
+		bulunduğundan emin olup yeniden deneyiniz."
+	exit 1
+fi
+
+# İşlenen dosyalarda projeye ait çalıştırılabilir kodlar içeren kaynak dosyası varsa
+# birim testlerini tetikle
+# diff-filter: A (Added), C (Copied), M (Modified)
+while read -r dsy; do
+	modul="$(basename -- "$dsy")" # Yolları at
+	modul="${modul%.*}" # uzantıyı da at
+	moduller+=("${modul}Test.java") # uzantısız dosya adına "Test" belirtecini ve uzantıyı ekle
+done < <(git diff --cached --name-only --diff-filter=ACM | grep -e'.*\.java' | grep -v '.*Test\.java')
+
+# Bu kancada yalnızca birim (unit) testlerini çalıştır
+if [[ "${#moduller[@]}" -ge 1 ]]; then
+	birimTestiDizini="${urtotm_projeDizini}/app/src/test"
+	entegTestiDizini="${urtotm_projeDizini}/app/src/androidTest"
+	for modul in "${moduller[@]}"; do
+		echo "Test edilecek modül: $modul"
+		# Bu modül için birim testi yok, entegrasyon testi varlığını yokla
+		entegTestDosyasi="$(find "$entegTestiDizini" -name "$modul" -type f)"
+		# Bu modül için birim testi varlığını yokla
+		birimTestDosyasi="$(find "$birimTestiDizini" -name "$modul" -type f)"
+		if [[ -z "$birimTestDosyasi" && -z "$entegTestDosyasi" ]]; then
+			# Bu modül için hiçbir test eklenmemiş, hata ver
+			mesajGoster hata "Lütfen '$modul' modülü için birim veya entegrasyon testleri ekleyiniz."
+			exit 1
+		fi
+		# Gradle ile birim testlerini tetikle
+		$gradlew :app:testDebugUnitTest --tests "$modul" &>/dev/null
+		testSonucu=$?
+		echo "Test sonucu: $testSonucu"
+		if [[ ! "$testSonucu" ]]; then
+			# Herhangi bir testin sonucu başarısız olursa iptal et
+			exit "$testSonucu"
+		fi
+	done
+fi
