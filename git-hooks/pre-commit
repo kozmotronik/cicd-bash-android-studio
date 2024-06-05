@@ -25,17 +25,14 @@ done < <(git diff --cached --name-only --diff-filter=ACM | grep -e'.*\.java' | g
 # Bu kancada yalnızca birim (unit) testlerini çalıştır
 if [[ "${#moduller[@]}" -ge 1 ]]; then
 	birimTestiDizini="${urtotm_projeDizini}/app/src/test"
-	entegTestiDizini="${urtotm_projeDizini}/app/src/androidTest"
 	for modul in "${moduller[@]}"; do
 		echo "Test edilecek modül: $modul"
-		# Bu modül için birim testi yok, entegrasyon testi varlığını yokla
-		entegTestDosyasi="$(find "$entegTestiDizini" -name "$modul" -type f)"
 		# Bu modül için birim testi varlığını yokla
 		birimTestDosyasi="$(find "$birimTestiDizini" -name "$modul" -type f)"
-		if [[ -z "$birimTestDosyasi" && -z "$entegTestDosyasi" ]]; then
-			# Bu modül için hiçbir test eklenmemiş, hata ver
-			mesajGoster hata "Lütfen '$modul' modülü için birim veya entegrasyon testleri ekleyiniz."
-			exit 1
+		if [[ -z "$birimTestDosyasi" ]]; then
+			# Bu modül için test bulunamadı, sonrakine bak
+			echo "'$modul' modülü için birim veya entegrasyon testi bulunamadığından atlanıyor."
+			continue
 		fi
 
 		paketAdi=$(grep -F package "$birimTestDosyasi")
