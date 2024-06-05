@@ -30,7 +30,6 @@ done < <(git diff --cached --name-only --diff-filter=ACM | grep -e'.*\.java' | g
 if [[ "${#moduller[@]}" -ge 1 ]]; then
 	birimTestiDizini="${urtotm_projeDizini}/app/src/test"
 	for modul in "${moduller[@]}"; do
-		echo "Test edilecek modül: $modul"
 		# Bu modül için birim testi varlığını yokla
 		# ATTENTION! modul uzantıyı barındırmadığı için find ile ararken sonuna bir (*) eklenmezse
 		# find hiç sonuç vermez. Şimdilik modül başına yalnızca bir test desteklenir.
@@ -46,11 +45,14 @@ if [[ "${#moduller[@]}" -ge 1 ]]; then
 		# package sözcüğünü ve ; işaretini ele
 		paketAdi="${paketAdi//'package '/}"
 		paketAdi="${paketAdi//;/}"
-		# paket adını modüle birleştir
-		modul="${paketAdi}.${modul}"
+		# Birim test dosya adını ayrıştır
+		birimTest="$(basename -- "$birimTestDosyasi")" # yolları at
+		birimTest="${birimTest%.*}" # uzantıyı at
+		# paket adını birim testine birleştir
+		birimTest="${paketAdi}.${birimTest}"
 
 		# Gradle ile birim testlerini tetikle
-		$gradlew :app:testDebugUnitTest --tests "$modul"
+		$gradlew :app:testDebugUnitTest --tests "$birimTest"
 		testSonucu=$?
 		if [[ "$testSonucu" != "0" ]]; then
 			# Herhangi bir testin sonucu başarısız olursa iptal et
