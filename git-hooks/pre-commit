@@ -37,6 +37,14 @@ if [[ "${#moduller[@]}" -ge 1 ]]; then
 			mesajGoster hata "Lütfen '$modul' modülü için birim veya entegrasyon testleri ekleyiniz."
 			exit 1
 		fi
+
+		paketAdi=$(grep -F package "$birimTestDosyasi")
+		# package sözcüğünü ve ; işaretini ele
+		paketAdi="${paketAdi//'package '/}"
+		paketAdi="${paketAdi//;/}"
+		# paket adını modüle birleştir
+		modul="${paketAdi}.${modul}"
+
 		# Gradle ile birim testlerini tetikle
 		$gradlew :app:testDebugUnitTest --tests "$modul" &>/dev/null
 		testSonucu=$?
