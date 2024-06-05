@@ -23,7 +23,7 @@ while read -r dsy; do
 	fi
 	modul="$(basename -- "$dsy")" # Yolları at
 	modul="${modul%.*}" # uzantıyı da at
-	moduller+=("${modul}Test") # uzantısız dosya adına "Test" belirtecini ekle
+	moduller+=("$modul")
 done < <(git diff --cached --name-only --diff-filter=ACM | grep -e'.*\.java' | grep -v '.*Test\.java')
 
 # Bu kancada yalnızca birim (unit) testlerini çalıştır
@@ -32,7 +32,10 @@ if [[ "${#moduller[@]}" -ge 1 ]]; then
 	for modul in "${moduller[@]}"; do
 		echo "Test edilecek modül: $modul"
 		# Bu modül için birim testi varlığını yokla
-		birimTestDosyasi="$(find "$birimTestiDizini" -name "$modul" -type f)"
+		# ATTENTION! modul uzantıyı barındırmadığı için find ile ararken sonuna bir (*) eklenmezse
+		# find hiç sonuç vermez. Şimdilik modül başına yalnızca bir test desteklenir.
+		# Bu ileride değişebilir.
+		birimTestDosyasi="$(find "$birimTestiDizini" -name "$modul*" -type f | head -1)"
 		if [[ -z "$birimTestDosyasi" ]]; then
 			# Bu modül için test bulunamadı, sonrakine bak
 			echo "'$modul' modülü için birim veya entegrasyon testi bulunamadığından atlanıyor."
